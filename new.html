@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Flappy Bird Game</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+      background: #222;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column; 
+      height: 100vh;
+    }
+    canvas {
+      display: block;
+      background: #E1ACAC;
+    }
+    #scoreBoard, #startMessage {
+      font-size: 18px;
+      z-index: 10;
+    }
+    #scoreBoard {
+      margin-bottom: 10px;
+    }
+    #startMessage {
+      font-size: 30px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="scoreBoard">Score: 0</div>
+<div id="startMessage">Click Space to Start Game</div>
+<canvas id="gameCanvas" width="1000" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let player = {
+  x: 100,
+  y: canvas.height / 2,
+  width: 40,
+  height: 40,
+  color: 'rgb(168, 118, 118)',
+  vy: 0,
+  flapStrength: -10,
+  gravity: 0.5,
+  onGround: false
+};
+
+let pipes = [];
+let score = 0;
+let gameOver = false;
+let gameStarted = false; 
+
+
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') {
+    if (!gameStarted) {
+      gameStarted = true;
+      document.getElementById('startMessage').style.display = 'none'; 
+      gameLoop(); 
+    } else if (!gameOver) {
+      player.vy = player.flapStrength;  
+    }
+  }
+});
+
+
+function spawnPipe() {
+  const gap = 150;
+  const pipeHeight = Math.floor(Math.random() * (canvas.height - gap));
+  
+  pipes.push({
+    x: canvas.width,
+    width: 50,
+    topHeight: pipeHeight,
+    bottomHeight: canvas.height - pipeHeight - gap,
+    color: 'rgb(228, 147, 179)'
+  });
+}
+
+
+function update() {
+  if (gameOver) return;
+
+
+  player.vy += player.gravity;
+  player.y += player.vy;
+
+ 
+  if (player.y + player.height > canvas.height) {
+    player.y = canvas.height - player.height;
+    player.vy = 0;
+    gameOverHandler();
+  }
+
+  if (player.y < 0) {
+    player.y = 0;
+    player.vy = 0;
+  }
+
+
+  pipes = pipes.filter(p => p.x + p.width > 0);  
+  pipes.forEach(p => p.x -= 2);  
+
+
+  pipes.forEach(p => {
+    if (
+      player.x + player.width > p.x &&
+      player.x < p.x + p.width &&
+      (player.y < p.topHeight || player.y + player.height > canvas.height - p.bottomHeight)
+    ) {
+      gameOverHandler();
+    }
+  });
+
+
+  pipes.forEach(p => {
+    if (p.x + p.width < player.x && !p.scored) {
+      score++;
+      document.getElementById('scoreBoard').innerText = `Score: ${score}`;
+      p.scored = true;  
+    }
+  });
+}
+
+
+function gameOverHandler() {
+  gameOver = true;
+  const scoreBoard = document.getElementById('scoreBoard');
+  scoreBoard.innerText = `Game Over! Score: ${score} Press R to Restart`;
+
+
+  scoreBoard.style.color = 'red'; 
+  scoreBoard.style.fontSize = '40px'; 
+}
+
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+
+  ctx.fillStyle = player.color;
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+
+
+  pipes.forEach(p => {
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x, 0, p.width, p.topHeight);  
+    ctx.fillRect(p.x, canvas.height - p.bottomHeight, p.width, p.bottomHeight); 
+  });
+}
+
+
+function gameLoop() {
+  if (!gameOver) {
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+  }
+}
+
+
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyR' && gameOver) {
+    resetGame();
+  }
+});
+
+function resetGame() {
+  player.y = canvas.height / 2;
+  player.vy = 0;
+  pipes = [];
+  score = 0;
+  gameOver = false;
+  gameStarted = false; 
+  document.getElementById('scoreBoard').innerText = `Score: ${score}`;
+  document.getElementById('startMessage').style.display = 'block'; 
+
+ 
+  const scoreBoard = document.getElementById('scoreBoard');
+  scoreBoard.style.color = 'white'; 
+  scoreBoard.style.fontSize = '18px'; 
+}
+
+
+setInterval(() => {
+  if (!gameOver && gameStarted) spawnPipe();
+}, 1500);  
+</script>
+
+</body>
+</html>
